@@ -75,6 +75,18 @@ def detect_cni_type():
             'configmaps': ['cilium-config'],
             'crds': ['ciliumnodes.cilium.io', 'ciliumnetworkpolicies.cilium.io']
         },
+        'kindnet': {  # Minikube's default CNI
+            'components': ['kindnet', 'kindnet-cni'],
+            'namespaces': ['kube-system'],
+            'configmaps': ['kindnet-config'],
+            'crds': []  # kindnet doesn't use CRDs
+        },
+        'kubenet': {  # Another default CNI used by some Kubernetes distributions
+            'components': ['kubenet', 'kube-proxy'],
+            'namespaces': ['kube-system'],
+            'configmaps': [],
+            'crds': []  # kubenet doesn't use CRDs
+        },
         'aws-cni': {
             'components': ['aws-node', 'aws-vpc-cni'],
             'namespaces': ['kube-system'],
@@ -574,6 +586,9 @@ def assess_migration_difficulty(cni_info, policy_info):
     elif cni_info['cni_type'] == 'weave':
         difficulty = "Moderate"
         reasons.append("Weave has some unique features that need careful consideration during migration")
+    elif cni_info['cni_type'] == 'kubenet' or cni_info['cni_type'] == 'kindnet':
+        difficulty = "Easy"
+        reasons.append(f"{cni_info['cni_type']} is a simple CNI with basic functionality, making migration straightforward")
 
     # Factor 2: Assess based on network policy count
     # More policies = more complex migration

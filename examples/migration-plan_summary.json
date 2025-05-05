@@ -1,0 +1,11 @@
+{
+  "source_cni": "kubenet",
+  "cni_version": "v1.32.0",
+  "target_cidr": "10.245.0.0/16",
+  "current_pod_cidr": "10.244.0.0/24",
+  "node_count": 1,
+  "policy_count": 7,
+  "approach": "hybrid",
+  "cilium_version": "v1.17.3",
+  "timestamp": "2025-05-04 19:00:38"
+}

@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minikube testing framework
 - Documentation with MkDocs
 - Python package setup
+- Support for kubenet and kindnet CNIs (minikube default CNIs)
+
+### Changed
+- Removed Makefile in favor of direct script execution
+- Updated documentation to reflect modern Python project practices
+- Improved handling of unknown or default CNIs
 
 ## [0.1.0] - 2023-07-01
 
@@ -24,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Calico, Flannel, and Weave CNIs
 - Support for hybrid, multus, and clean migration approaches
 - Command-line interface with Click
-- Makefile for easier usage
 - Example scripts for migration workflows
 
 [Unreleased]: https://github.com/cmcconnell1/k8s-cni-migration-tool/compare/v0.1.0...HEAD

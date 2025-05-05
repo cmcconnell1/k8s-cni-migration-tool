@@ -22,7 +22,7 @@ Cilium provides several advantages over other CNI solutions:
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.8+ (Python 3.12 recommended)
 - kubectl with access to your Kubernetes cluster
 - Kubernetes cluster running one of the supported CNIs (Calico, Flannel, Weave)
 - Cilium CLI (optional, for validation)
@@ -32,94 +32,105 @@ For testing with Minikube:
 - Docker or Podman
 - jq (for parsing JSON output)
 
+**Note:** If you're using Python 3.13, you might encounter compatibility issues with some dependencies. We recommend using Python 3.12 for the best experience.
+
 ## Installation
 
 ```bash
-# Install from PyPI
-pip install k8s-cni-migration-tool
-
-# Or clone the repository and install from source
+# clone the repository and install from source
 git clone https://github.com/cmcconnell1/k8s-cni-migration-tool.git
 cd k8s-cni-migration-tool
+
+# Create a virtual environment (recommended)
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+
+# Install the package
 pip install -e .
 ```
 
+For development setup and troubleshooting, see the [Development Guide](DEVELOPMENT.md).
+
 ## Usage
 
-### Using Poetry (Recommended)
+### Running the Migration Workflow
 
-Poetry is the recommended way to manage dependencies and run the tool. First, install Poetry:
-
-```bash
-# Install Poetry
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Install dependencies
-poetry install
-
-# Run the complete migration workflow
-poetry run bash examples/migration_workflow.sh
-
-# Or run individual steps
-poetry run python cni_migration.py assess --output-dir ./assessment
-poetry run python cni_migration.py convert --source-cni calico --input-dir ./assessment/policies --output-dir ./converted-policies
-poetry run python cni_migration.py plan --target-cidr 10.245.0.0/16 --approach hybrid --output-file ./migration-plan.md
-poetry run python cni_migration.py validate --phase pre --report-dir ./validation-reports
-```
-
-### Using the Makefile (Legacy)
-
-The tool also provides a Makefile for backward compatibility:
+The simplest way to use the tool is to run the migration workflow script directly:
 
 ```bash
+# Set up a Python virtual environment
+python3.12 -m venv .venv
+
+# Activate the virtual environment
+source .venv/bin/activate
+
 # Install dependencies
-make install
+pip install -e .
 
-# Run the complete migration workflow
-make run-workflow
-
-# Or run individual steps
-make run-assessment
-make run-convert
-make run-plan
-make run-validate-pre
-
-# See all available commands
-make help
+# Run the complete migration workflow script
+cd examples
+bash migration_workflow.sh
 ```
+
+This script will:
+1. Assess your current CNI configuration
+2. Convert network policies to Cilium format
+3. Generate a migration plan
+4. Validate connectivity before migration
+
+The results will be saved in the examples directory for review.
 
 ### Using the CLI Directly
 
-For more control, you can use the CLI directly:
+For more control, you can use the CLI directly with individual commands:
 
 ```bash
+# Make sure your virtual environment is activated
+source .venv/bin/activate
+
 # Assess current CNI configuration
-python cni_migration.py assess --output-dir ./assessment --debug
+python cni_migration.py --debug assess --output-dir ./assessment
 
 # Convert network policies with validation
-python cni_migration.py convert --source-cni calico --input-dir ./assessment/policies --output-dir ./converted-policies --validate --no-apply
+# Note: If your CNI is detected as 'kubenet' or 'kindnet', use 'calico' as the source-cni
+python cni_migration.py --debug convert --source-cni calico --input-dir ./assessment/policies --output-dir ./converted-policies --validate --no-apply
 
 # Generate migration plan
-python cni_migration.py plan --target-cidr 10.245.0.0/16 --approach hybrid --output-file ./migration-plan.md
+python cni_migration.py --debug plan --target-cidr 10.245.0.0/16 --approach hybrid --output-file ./migration-plan.md
 
 # Validate connectivity (pre-migration)
-python cni_migration.py validate --phase pre --report-dir ./validation-reports
+python cni_migration.py --debug validate --phase pre --report-dir ./validation-reports
 
 # Validate connectivity (during migration)
-python cni_migration.py validate --phase during --source-cni calico --target-cidr 10.245.0.0/16 --report-dir ./validation-reports
+python cni_migration.py --debug validate --phase during --source-cni calico --target-cidr 10.245.0.0/16 --report-dir ./validation-reports
 
 # Validate connectivity (post-migration)
-python cni_migration.py validate --phase post --source-cni calico --report-dir ./validation-reports
+python cni_migration.py --debug validate --phase post --source-cni calico --report-dir ./validation-reports
 ```
+
+> **Important:** Note that the `--debug` flag is a global option and should be placed before the command (e.g., `assess`, `convert`, etc.).
 
 ### Example Workflow Script
 
-An example workflow script is provided in `examples/migration_workflow.sh` that demonstrates the complete migration process:
+The `examples/migration_workflow.sh` script demonstrates the complete migration process and handles special cases like unknown or default CNIs:
 
 ```bash
+# Make sure your virtual environment is activated
+source .venv/bin/activate
+
+# Navigate to the examples directory
+cd examples
+
 # Run the example workflow
-bash examples/migration_workflow.sh
+bash migration_workflow.sh
 ```
+
+This script will:
+1. Detect your CNI type automatically
+2. Handle special cases like kubenet or kindnet by using calico as the source CNI for policy conversion
+3. Generate all necessary files for migration
+4. Provide next steps for completing the migration
 
 ## Migration Approaches
 
@@ -226,17 +237,24 @@ The following features and improvements are planned for future releases:
 The tool includes scripts to set up and test migrations in a Minikube environment:
 
 ```bash
-# Set up Minikube with a specific CNI
+# Start Minikube with default CNI (kubenet/kindnet)
+minikube start
+
+# Or set up Minikube with a specific CNI
 ./tests/minikube/setup/setup-calico.sh  # For Calico
 ./tests/minikube/setup/setup-flannel.sh # For Flannel
 ./tests/minikube/setup/setup-weave.sh   # For Weave
 
 # Run a complete test workflow
 cd tests/minikube
-./run-tests.sh --cni calico
+./run-tests.sh --cni calico  # If using Calico
+# Or for default CNI
+./run-tests.sh --cni kubenet
 ```
 
-Note: The setup scripts will check if Minikube is installed but will not automatically install it. If Minikube is not found, you'll need to install it manually following the [Minikube installation guide](https://minikube.sigs.k8s.io/docs/start/).
+> **Note:** Minikube uses kubenet (also called kindnet in newer versions) as its default CNI. The tool will detect this and use calico as the source CNI for policy conversion, as kubenet only supports standard Kubernetes NetworkPolicies.
+
+The setup scripts will check if Minikube is installed but will not automatically install it. If Minikube is not found, you'll need to install it manually following the [Minikube installation guide](https://minikube.sigs.k8s.io/docs/start/).
 
 For more details on Minikube testing, see the [Minikube Testing documentation](docs/testing/minikube.md).
 

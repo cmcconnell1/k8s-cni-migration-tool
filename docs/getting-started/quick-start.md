@@ -84,23 +84,19 @@ Validate connectivity after migration:
 cni-migration validate --phase post --source-cni calico
 ```
 
-## Using the Makefile
+## Using the Migration Workflow Script
 
-The tool also provides a Makefile for easier usage:
+The tool provides a migration workflow script for easier usage:
 
 ```bash
-# Install dependencies
-make install
+# Navigate to the examples directory
+cd examples
 
-# Run the complete migration workflow
-make run-workflow
-
-# Or run individual steps
-make run-assessment
-make run-convert
-make run-plan
-make run-validate-pre
+# Run the migration workflow script
+bash migration_workflow.sh
 ```
+
+This script will run all the steps in sequence and handle special cases like unknown or default CNIs.
 
 ## Next Steps
 

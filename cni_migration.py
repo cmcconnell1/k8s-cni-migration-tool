@@ -62,7 +62,7 @@ def assess(output_dir):
         sys.exit(1)  # Exit with error code
 
 @cli.command()  # Register this function as a sub-command of the CLI group
-@click.option('--source-cni', required=True, type=click.Choice(['calico', 'flannel', 'weave']),
+@click.option('--source-cni', required=True, type=click.Choice(['calico', 'flannel', 'weave', 'kubenet', 'kindnet']),
               help='Source CNI type')  # Required option to specify the source CNI
 @click.option('--input-dir', default='./assessment/policies', help='Directory containing network policies')  # Input directory option
 @click.option('--output-dir', default='./converted-policies', help='Directory to store converted policies')  # Output directory option

@@ -9,7 +9,7 @@ mkdir -p test_output/assessment
 mkdir -p test_output/converted-policies
 
 echo "Testing assessment module..."
-python ../cni_migration.py assess --output-dir ./test_output/assessment --debug
+python $(dirname $0)/../cni_migration.py --debug assess --output-dir ./test_output/assessment
 
 echo "Testing policy converter module..."
 # Create a sample Kubernetes NetworkPolicy
@@ -45,10 +45,10 @@ spec:
       port: 5432
 EOF
 
-python ../cni_migration.py convert --source-cni calico --input-dir ./test_output/assessment/policies --output-dir ./test_output/converted-policies --debug
+python $(dirname $0)/../cni_migration.py --debug convert --source-cni calico --input-dir ./test_output/assessment/policies --output-dir ./test_output/converted-policies
 
 echo "Testing migration planner module..."
-python ../cni_migration.py plan --target-cidr 10.245.0.0/16 --approach hybrid --output-file ./test_output/migration-plan.md --debug
+python $(dirname $0)/../cni_migration.py --debug plan --target-cidr 10.245.0.0/16 --approach hybrid --output-file ./test_output/migration-plan.md
 
 echo "All tests completed successfully!"
 echo "Check the test_output directory for results."

@@ -10,6 +10,7 @@ import yaml
 import json
 from datetime import datetime
 from jinja2 import Template
+from kubernetes import client
 from .k8s_utils import get_kubernetes_client, get_node_info, get_pod_cidr
 from .assessment import detect_cni_type, count_network_policies
 

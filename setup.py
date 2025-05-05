@@ -8,9 +8,6 @@ from setuptools import setup, find_packages
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-with open("requirements.txt", "r", encoding="utf-8") as fh:
-    requirements = fh.read().splitlines()
-
 setup(
     name="k8s-cni-migration-tool",
     version="0.1.0",
@@ -30,7 +27,21 @@ setup(
         "Topic :: System :: Systems Administration",
     ],
     python_requires=">=3.8",
-    install_requires=requirements,
+    install_requires=[
+        "kubernetes>=26.1.0",
+        "pyyaml>=6.0.1",  # Using newer version that has pre-built wheels
+        "click>=8.1.3",
+        "rich>=13.3.5",
+        "jinja2>=3.1.2",
+        "requests>=2.28.2",
+    ],
+    extras_require={
+        "dev": [
+            "pytest>=7.0.0",
+            "black>=23.0.0",
+            "isort>=5.12.0",
+        ],
+    },
     entry_points={
         "console_scripts": [
             "cni-migration=cni_migration:cli",

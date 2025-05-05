@@ -388,7 +388,7 @@ def convert_policies(source_cni, input_dir, output_dir, validate=True, apply=Fal
     Convert network policies from source CNI to Cilium format.
 
     Args:
-        source_cni (str): Source CNI type (calico, flannel, weave)
+        source_cni (str): Source CNI type (calico, flannel, weave, kubenet, kindnet)
         input_dir (str): Directory containing network policies
         output_dir (str): Directory to store converted policies
         validate (bool): Whether to validate converted policies
@@ -404,6 +404,11 @@ def convert_policies(source_cni, input_dir, output_dir, validate=True, apply=Fal
     os.makedirs(os.path.join(output_dir, 'k8s'), exist_ok=True)
     if source_cni == 'calico':
         os.makedirs(os.path.join(output_dir, 'calico'), exist_ok=True)
+
+    # For kubenet and kindnet, we only need to handle standard Kubernetes NetworkPolicies
+    # These CNIs don't have their own policy types, they just use the Kubernetes NetworkPolicy API
+    if source_cni in ['kubenet', 'kindnet']:
+        log.info(f"{source_cni} uses standard Kubernetes NetworkPolicies, no special conversion needed")
 
     # Create a directory for validation errors
     validation_dir = os.path.join(output_dir, 'validation')
