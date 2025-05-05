@@ -1,0 +1,57 @@
+# Sample Cilium Helm values for migration
+# This file contains recommended settings for migrating to Cilium
+
+# IPAM configuration
+ipam:
+  mode: "cluster-pool"
+  operator:
+    clusterPoolIPv4PodCIDRList: ["10.245.0.0/16"]  # Replace with your desired CIDR
+
+# Tunnel configuration
+tunnel: vxlan
+tunnelPort: 8473  # Use a different port than the existing CNI
+
+# CNI configuration for migration
+cni:
+  customConf: true  # Don't write CNI config initially
+  uninstall: false  # Don't uninstall existing CNI
+
+# Operator configuration
+operator:
+  unmanagedPodWatcher:
+    restart: false  # Don't restart pods not managed by Cilium during migration
+
+# Policy enforcement
+policyEnforcementMode: "never"  # Disable policy enforcement during migration
+
+# Routing configuration
+bpf:
+  hostLegacyRouting: true  # Use legacy routing during migration
+
+# Additional settings for specific CNI migrations
+# Uncomment as needed
+
+# For Calico migration
+# hostPort:
+#   enabled: true
+# hostServices:
+#   enabled: true
+
+# For AWS VPC CNI migration
+# eni:
+#   enabled: false
+# ipam:
+#   mode: "kubernetes"
+
+# Hubble observability (optional, enable after migration)
+# hubble:
+#   enabled: false
+#   metrics:
+#     enabled: false
+#   relay:
+#     enabled: false
+#   ui:
+#     enabled: false
+
+# kube-proxy replacement (recommended to enable after migration)
+kubeProxyReplacement: "disabled"

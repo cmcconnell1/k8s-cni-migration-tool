@@ -1,0 +1,16 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: test-pods
+spec:
+  selector: all()
+  types:
+  - Egress
+  egress:
+  - action: Allow
+    destination:
+      selector: k8s-app == 'kube-dns'
+      namespaceSelector: kubernetes.io/metadata.name == 'kube-system'
+      ports:
+      - 53

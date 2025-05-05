@@ -1,0 +1,245 @@
+# Kubernetes CNI Migration Tool
+- A POC comprehensive tool for assessing and facilitating migration from existing Kubernetes CNI solutions (Flannel, Calico, Weave, etc.) to Cilium.
+- Author: Chris McConnell @cmcconnell1
+
+## Features
+
+- **Assessment**: Analyze your current CNI configuration and determine migration difficulty
+- **Policy Translation**: Convert existing network policies to Cilium-compatible format
+- **Migration Planning**: Generate a step-by-step migration plan based on your cluster's specific configuration
+- **Validation**: Verify connectivity and policy enforcement before, during, and after migration
+
+## Why Migrate to Cilium?
+
+Cilium provides several advantages over other CNI solutions:
+
+- **eBPF-based**: Uses Linux kernel's eBPF technology for improved performance and security
+- **Advanced Network Policies**: Supports L7 policies (HTTP, gRPC, Kafka)
+- **Observability**: Integrated with Hubble for network flow visibility
+- **Service Mesh**: Native service mesh capabilities without sidecars
+- **Gateway API**: Native implementation of Kubernetes Gateway API
+- **Scalability**: Better performance at scale compared to iptables-based solutions
+
+## Prerequisites
+
+- Python 3.8+
+- kubectl with access to your Kubernetes cluster
+- Kubernetes cluster running one of the supported CNIs (Calico, Flannel, Weave)
+- Cilium CLI (optional, for validation)
+
+For testing with Minikube:
+- Minikube v1.30.0 or later
+- Docker or Podman
+- jq (for parsing JSON output)
+
+## Installation
+
+```bash
+# Install from PyPI
+pip install k8s-cni-migration-tool
+
+# Or clone the repository and install from source
+git clone https://github.com/cmcconnell1/k8s-cni-migration-tool.git
+cd k8s-cni-migration-tool
+pip install -e .
+```
+
+## Usage
+
+### Using Poetry (Recommended)
+
+Poetry is the recommended way to manage dependencies and run the tool. First, install Poetry:
+
+```bash
+# Install Poetry
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+
+# Run the complete migration workflow
+poetry run bash examples/migration_workflow.sh
+
+# Or run individual steps
+poetry run python cni_migration.py assess --output-dir ./assessment
+poetry run python cni_migration.py convert --source-cni calico --input-dir ./assessment/policies --output-dir ./converted-policies
+poetry run python cni_migration.py plan --target-cidr 10.245.0.0/16 --approach hybrid --output-file ./migration-plan.md
+poetry run python cni_migration.py validate --phase pre --report-dir ./validation-reports
+```
+
+### Using the Makefile (Legacy)
+
+The tool also provides a Makefile for backward compatibility:
+
+```bash
+# Install dependencies
+make install
+
+# Run the complete migration workflow
+make run-workflow
+
+# Or run individual steps
+make run-assessment
+make run-convert
+make run-plan
+make run-validate-pre
+
+# See all available commands
+make help
+```
+
+### Using the CLI Directly
+
+For more control, you can use the CLI directly:
+
+```bash
+# Assess current CNI configuration
+python cni_migration.py assess --output-dir ./assessment --debug
+
+# Convert network policies with validation
+python cni_migration.py convert --source-cni calico --input-dir ./assessment/policies --output-dir ./converted-policies --validate --no-apply
+
+# Generate migration plan
+python cni_migration.py plan --target-cidr 10.245.0.0/16 --approach hybrid --output-file ./migration-plan.md
+
+# Validate connectivity (pre-migration)
+python cni_migration.py validate --phase pre --report-dir ./validation-reports
+
+# Validate connectivity (during migration)
+python cni_migration.py validate --phase during --source-cni calico --target-cidr 10.245.0.0/16 --report-dir ./validation-reports
+
+# Validate connectivity (post-migration)
+python cni_migration.py validate --phase post --source-cni calico --report-dir ./validation-reports
+```
+
+### Example Workflow Script
+
+An example workflow script is provided in `examples/migration_workflow.sh` that demonstrates the complete migration process:
+
+```bash
+# Run the example workflow
+bash examples/migration_workflow.sh
+```
+
+## Migration Approaches
+
+The tool supports multiple migration approaches:
+
+### 1. Hybrid Per-Node Migration (Recommended)
+
+This approach allows for a gradual migration with minimal disruption:
+
+- Deploy Cilium alongside the existing CNI
+- Migrate nodes one by one using Cilium's per-node configuration feature
+- Maintain connectivity between pods on different CNIs during migration
+- No cluster-wide downtime required
+
+### 2. Multus Multi-Interface
+
+This approach uses Multus CNI to attach multiple network interfaces:
+
+- Deploy Multus CNI and configure it to use both the existing CNI and Cilium
+- Pods can have interfaces from both CNIs simultaneously
+- Gradually transition from the old CNI to Cilium
+- More complex setup but allows for flexible migration
+
+### 3. Clean Replacement
+
+This approach is simpler but requires downtime:
+
+- Schedule a maintenance window
+- Remove the existing CNI
+- Install Cilium
+- Restart all pods to use Cilium networking
+
+## Tool Components
+
+- **Assessment Module**: Detects current CNI, counts network policies, and evaluates migration difficulty
+  - Identifies CNI type, version, and configuration details
+  - Analyzes network policies and their complexity
+  - Provides a detailed assessment report with migration recommendations
+
+- **Policy Converter**: Translates network policies to Cilium format
+  - Converts Kubernetes NetworkPolicies to CiliumNetworkPolicies
+  - Converts Calico NetworkPolicies to CiliumNetworkPolicies
+  - Validates converted policies for correctness
+  - Generates detailed conversion reports
+  - Optionally applies converted policies to the cluster
+
+- **Migration Planner**: Generates detailed migration plans
+  - Creates step-by-step migration instructions based on cluster configuration
+  - Supports multiple migration approaches (hybrid, multus, clean)
+  - Includes rollback procedures and verification steps
+  - Customizes plans based on source CNI and target configuration
+
+- **Validator**: Tests connectivity and policy enforcement
+  - Validates connectivity before, during, and after migration
+  - Tests cross-CNI communication during migration
+  - Verifies network policy enforcement
+  - Generates detailed validation reports with recommendations
+
+## Related Documentation
+
+- [Kubernetes CNI Comparison](../k8s-cni-comparison.md)
+- [Kubernetes CNI Solutions Detail](../k8s-cni-solutions-detail.md)
+- [Kubernetes CNI Migration Paths](../k8s-cni-migration-paths.md)
+
+## External Resources
+
+- [Cilium Documentation](https://docs.cilium.io/)
+- [Cilium Migration Guide](https://docs.cilium.io/en/stable/installation/k8s-install-migration/)
+- [Isovalent Migration Tutorial](https://isovalent.com/blog/post/tutorial-migrating-to-cilium-part-1/)
+
+## Roadmap
+
+The following features and improvements are planned for future releases:
+
+### Multi-Node Cluster Support
+- Enhanced support for large multi-node clusters
+- Node-specific migration strategies
+- Parallel migration workflows for faster migrations
+
+### Cloud Provider Support
+- AWS EKS-specific migration paths
+- GKE-specific migration paths
+- AKS-specific migration paths
+- Support for cloud provider CNI integrations (VPC CNI, GKE CNI, etc.)
+
+### Managed Kubernetes Distributions
+- OpenShift migration support
+- Rancher RKE/RKE2 migration support
+- k3s migration support
+
+### Advanced Features
+- Automated rollback mechanisms
+- Enhanced policy translation for complex scenarios
+- Integration with Cilium Hubble for migration observability
+- Support for IPv6 and dual-stack migrations
+
+### User Experience
+- Web UI for migration management
+- Real-time migration status monitoring
+- Comprehensive reporting and documentation generation
+
+## Testing with Minikube
+
+The tool includes scripts to set up and test migrations in a Minikube environment:
+
+```bash
+# Set up Minikube with a specific CNI
+./tests/minikube/setup/setup-calico.sh  # For Calico
+./tests/minikube/setup/setup-flannel.sh # For Flannel
+./tests/minikube/setup/setup-weave.sh   # For Weave
+
+# Run a complete test workflow
+cd tests/minikube
+./run-tests.sh --cni calico
+```
+
+Note: The setup scripts will check if Minikube is installed but will not automatically install it. If Minikube is not found, you'll need to install it manually following the [Minikube installation guide](https://minikube.sigs.k8s.io/docs/start/).
+
+For more details on Minikube testing, see the [Minikube Testing documentation](docs/testing/minikube.md).
+
+## License
+
+MIT

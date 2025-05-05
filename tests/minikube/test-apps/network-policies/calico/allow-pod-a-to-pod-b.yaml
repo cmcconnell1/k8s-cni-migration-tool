@@ -1,0 +1,16 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: allow-pod-a-to-pod-b
+  namespace: test-pods
+spec:
+  selector: app == 'pod-b'
+  types:
+  - Ingress
+  ingress:
+  - action: Allow
+    source:
+      selector: app == 'pod-a'
+    destination:
+      ports:
+      - 80
