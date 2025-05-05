@@ -191,9 +191,17 @@ This approach is simpler but requires downtime:
 
 ## Related Documentation
 
-- [Kubernetes CNI Comparison](../k8s-cni-comparison.md)
-- [Kubernetes CNI Solutions Detail](../k8s-cni-solutions-detail.md)
-- [Kubernetes CNI Migration Paths](../k8s-cni-migration-paths.md)
+For more information about Kubernetes CNIs and migration strategies, check out these resources:
+
+- [Kubernetes Networking and CNI Documentation](https://kubernetes.io/docs/concepts/cluster-administration/networking/)
+- [CNI Specification](https://github.com/containernetworking/cni/blob/master/SPEC.md)
+- [Cilium CNI Migration Guide](https://docs.cilium.io/en/stable/installation/k8s-install-migration/)
+
+Additional detailed documentation from the original project:
+
+- [Kubernetes CNI Comparison](https://github.com/cmcconnell1/consulting-resources/blob/main/k8s-cni-comparison.md)
+- [Kubernetes CNI Solutions Detail](https://github.com/cmcconnell1/consulting-resources/blob/main/k8s-cni-solutions-detail.md)
+- [Kubernetes CNI Migration Paths](https://github.com/cmcconnell1/consulting-resources/blob/main/k8s-cni-migration-paths.md)
 
 ## External Resources
 
