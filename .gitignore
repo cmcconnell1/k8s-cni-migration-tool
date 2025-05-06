@@ -122,7 +122,36 @@ dmypy.json
 assessment/
 converted-policies/
 migration-plan.md
+migration-plan_summary.json
 validation-reports/
+examples/assessment/
+examples/converted-policies/
+examples/validation-reports/
+examples/migration-plan.md
+examples/migration-plan_summary.json
+
+# Generated test results
+*_report.md
+*_summary.json
+connectivity-report-*.json
 
 # Minikube test files
 tests/minikube/logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+.DS_Store
+
+# Generated kubernetes resources
+kubeconfig
+*.kubeconfig
+kube-config.yaml
+
+# Local development files
+local/
+.local/
+*.local.yaml
+*.local.json
+*.local.md

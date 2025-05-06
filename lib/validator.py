@@ -62,16 +62,35 @@ def check_pod_connectivity(source_pod, target_pod, namespace="cni-migration-test
             log.error(f"Target pod {target_pod} has no IP address")
             return False
 
-        # Run curl from source pod to target pod
-        command = [
-            "kubectl", "exec", "-n", namespace, source_pod, "--",
-            "curl", "--max-time", "5", "-s", target_ip
-        ]
+        # Try to use curl first
+        try:
+            command = [
+                "kubectl", "exec", "-n", namespace, source_pod, "--",
+                "curl", "--max-time", "5", "-s", target_ip
+            ]
+            output = run_kubectl_command(command)
+            return len(output) > 0
+        except Exception as curl_error:
+            log.warning(f"Curl failed, trying wget: {str(curl_error)}")
 
-        output = run_kubectl_command(command)
+            # If curl fails, try wget
+            try:
+                command = [
+                    "kubectl", "exec", "-n", namespace, source_pod, "--",
+                    "wget", "-q", "-T", "5", "-O", "-", target_ip
+                ]
+                output = run_kubectl_command(command)
+                return len(output) > 0
+            except Exception as wget_error:
+                log.warning(f"Wget failed, trying ping: {str(wget_error)}")
 
-        # Check if the output contains expected response
-        return len(output) > 0
+                # If wget fails, try ping as a last resort
+                command = [
+                    "kubectl", "exec", "-n", namespace, source_pod, "--",
+                    "ping", "-c", "1", "-W", "5", target_ip
+                ]
+                output = run_kubectl_command(command)
+                return "1 packets transmitted, 1 received" in output or "1 packets transmitted, 1 packets received" in output
     except Exception as e:
         log.error(f"Error checking connectivity from {source_pod} to {target_pod}: {str(e)}")
         return False
@@ -89,16 +108,37 @@ def check_service_connectivity(source_pod, service_name, namespace="cni-migratio
         bool: True if connectivity is successful, False otherwise
     """
     try:
-        # Run curl from source pod to service
-        command = [
-            "kubectl", "exec", "-n", namespace, source_pod, "--",
-            "curl", "--max-time", "5", "-s", f"{service_name}.{namespace}.svc.cluster.local"
-        ]
+        service_url = f"{service_name}.{namespace}.svc.cluster.local"
 
-        output = run_kubectl_command(command)
+        # Try to use curl first
+        try:
+            command = [
+                "kubectl", "exec", "-n", namespace, source_pod, "--",
+                "curl", "--max-time", "5", "-s", service_url
+            ]
+            output = run_kubectl_command(command)
+            return len(output) > 0
+        except Exception as curl_error:
+            log.warning(f"Curl failed, trying wget: {str(curl_error)}")
 
-        # Check if the output contains expected response
-        return len(output) > 0
+            # If curl fails, try wget
+            try:
+                command = [
+                    "kubectl", "exec", "-n", namespace, source_pod, "--",
+                    "wget", "-q", "-T", "5", "-O", "-", service_url
+                ]
+                output = run_kubectl_command(command)
+                return len(output) > 0
+            except Exception as wget_error:
+                log.warning(f"Wget failed, trying ping: {str(wget_error)}")
+
+                # If wget fails, try ping as a last resort
+                command = [
+                    "kubectl", "exec", "-n", namespace, source_pod, "--",
+                    "ping", "-c", "1", "-W", "5", service_url
+                ]
+                output = run_kubectl_command(command)
+                return "1 packets transmitted, 1 received" in output or "1 packets transmitted, 1 packets received" in output
     except Exception as e:
         log.error(f"Error checking connectivity from {source_pod} to service {service_name}: {str(e)}")
         return False
@@ -116,16 +156,35 @@ def check_external_connectivity(pod_name, external_url="www.google.com", namespa
         bool: True if connectivity is successful, False otherwise
     """
     try:
-        # Run curl from pod to external URL
-        command = [
-            "kubectl", "exec", "-n", namespace, pod_name, "--",
-            "curl", "--max-time", "5", "-s", external_url
-        ]
+        # Try to use curl first
+        try:
+            command = [
+                "kubectl", "exec", "-n", namespace, pod_name, "--",
+                "curl", "--max-time", "5", "-s", external_url
+            ]
+            output = run_kubectl_command(command)
+            return len(output) > 0
+        except Exception as curl_error:
+            log.warning(f"Curl failed, trying wget: {str(curl_error)}")
 
-        output = run_kubectl_command(command)
+            # If curl fails, try wget
+            try:
+                command = [
+                    "kubectl", "exec", "-n", namespace, pod_name, "--",
+                    "wget", "-q", "-T", "5", "-O", "-", external_url
+                ]
+                output = run_kubectl_command(command)
+                return len(output) > 0
+            except Exception as wget_error:
+                log.warning(f"Wget failed, trying ping: {str(wget_error)}")
 
-        # Check if the output contains expected response
-        return len(output) > 0
+                # If wget fails, try ping as a last resort
+                command = [
+                    "kubectl", "exec", "-n", namespace, pod_name, "--",
+                    "ping", "-c", "1", "-W", "5", external_url
+                ]
+                output = run_kubectl_command(command)
+                return "1 packets transmitted, 1 received" in output or "1 packets transmitted, 1 packets received" in output
     except Exception as e:
         log.error(f"Error checking connectivity from {pod_name} to {external_url}: {str(e)}")
         return False
@@ -143,16 +202,47 @@ def check_dns_resolution(pod_name, hostname="kubernetes.default.svc.cluster.loca
         bool: True if DNS resolution is successful, False otherwise
     """
     try:
-        # Run nslookup from pod
-        command = [
-            "kubectl", "exec", "-n", namespace, pod_name, "--",
-            "nslookup", hostname
-        ]
+        # Try nslookup first
+        try:
+            command = [
+                "kubectl", "exec", "-n", namespace, pod_name, "--",
+                "nslookup", hostname
+            ]
+            output = run_kubectl_command(command)
+            return "Address" in output
+        except Exception as nslookup_error:
+            log.warning(f"nslookup failed, trying dig: {str(nslookup_error)}")
 
-        output = run_kubectl_command(command)
+            # If nslookup fails, try dig
+            try:
+                command = [
+                    "kubectl", "exec", "-n", namespace, pod_name, "--",
+                    "dig", hostname
+                ]
+                output = run_kubectl_command(command)
+                return "ANSWER SECTION" in output
+            except Exception as dig_error:
+                log.warning(f"dig failed, trying getent: {str(dig_error)}")
 
-        # Check if the output contains expected response
-        return "Address" in output
+                # If dig fails, try getent
+                try:
+                    command = [
+                        "kubectl", "exec", "-n", namespace, pod_name, "--",
+                        "getent", "hosts", hostname
+                    ]
+                    output = run_kubectl_command(command)
+                    return len(output) > 0
+                except Exception as getent_error:
+                    log.warning(f"getent failed, trying ping as last resort: {str(getent_error)}")
+
+                    # If all else fails, try ping (which will do a DNS lookup)
+                    command = [
+                        "kubectl", "exec", "-n", namespace, pod_name, "--",
+                        "ping", "-c", "1", "-W", "5", hostname
+                    ]
+                    output = run_kubectl_command(command)
+                    # If ping succeeds or fails with "unknown host", we can determine if DNS resolution worked
+                    return "unknown host" not in output.lower()
     except Exception as e:
         log.error(f"Error checking DNS resolution from {pod_name} for {hostname}: {str(e)}")
         return False

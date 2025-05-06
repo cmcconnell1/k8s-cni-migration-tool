@@ -11,7 +11,7 @@ log = logging.getLogger("cni-migration.k8s_utils")
 def get_kubernetes_client():
     """
     Initialize and return a Kubernetes API client.
-    
+
     Returns:
         kubernetes.client.ApiClient: Initialized Kubernetes API client
     """
@@ -28,19 +28,19 @@ def get_kubernetes_client():
             log.error("Failed to load Kubernetes configuration: %s", str(e))
             log.error("In-cluster config also failed: %s", str(in_cluster_e))
             raise RuntimeError("Could not configure Kubernetes client") from e
-    
+
     return client.ApiClient()
 
 def get_node_info():
     """
     Get information about nodes in the cluster.
-    
+
     Returns:
         list: List of node information dictionaries
     """
     api_client = get_kubernetes_client()
     core_v1 = client.CoreV1Api(api_client)
-    
+
     nodes = []
     try:
         node_list = core_v1.list_node()
@@ -59,35 +59,35 @@ def get_node_info():
     except Exception as e:
         log.error("Error getting node information: %s", str(e))
         raise
-    
+
     return nodes
 
 def get_pod_cidr():
     """
     Get the Pod CIDR used in the cluster.
-    
+
     Returns:
         str: Pod CIDR or None if not found
     """
     api_client = get_kubernetes_client()
     core_v1 = client.CoreV1Api(api_client)
-    
+
     try:
         # Get the first node
         nodes = core_v1.list_node()
         if not nodes.items:
             log.warning("No nodes found in the cluster")
             return None
-        
+
         # Check if the node has a podCIDR
         node = nodes.items[0]
         if hasattr(node.spec, 'pod_cidr') and node.spec.pod_cidr:
             return node.spec.pod_cidr
-        
+
         # If not found in node spec, try to get it from cluster configuration
         # This is implementation-specific and might not work in all clusters
         log.warning("Pod CIDR not found in node spec, trying to get from ConfigMap")
-        
+
         # Try to get from kube-system/kubeadm-config ConfigMap (for kubeadm clusters)
         try:
             kubeadm_config = core_v1.read_namespaced_config_map(
@@ -101,7 +101,7 @@ def get_pod_cidr():
                     return cluster_config['networking']['podSubnet']
         except Exception as e:
             log.debug("Error getting kubeadm-config: %s", str(e))
-        
+
         # Try to get from CNI configuration
         # This is highly dependent on the CNI implementation
         log.warning("Pod CIDR not found in kubeadm-config, CNI-specific methods would be needed")
@@ -113,16 +113,16 @@ def get_pod_cidr():
 def create_test_pods(namespace="cni-migration-test"):
     """
     Create test pods for connectivity validation.
-    
+
     Args:
         namespace (str): Namespace to create test pods in
-        
+
     Returns:
         list: Names of created pods
     """
     api_client = get_kubernetes_client()
     core_v1 = client.CoreV1Api(api_client)
-    
+
     # Create namespace if it doesn't exist
     try:
         core_v1.read_namespace(name=namespace)
@@ -134,7 +134,7 @@ def create_test_pods(namespace="cni-migration-test"):
             core_v1.create_namespace(body=ns_manifest)
         else:
             raise
-    
+
     # Define test pods
     test_pods = [
         {
@@ -144,12 +144,12 @@ def create_test_pods(namespace="cni-migration-test"):
         },
         {
             "name": "test-pod-2",
-            "image": "busybox:latest",
+            "image": "curlimages/curl:latest",  # Using an image with curl pre-installed
             "labels": {"app": "test-pod-2"},
             "command": ["sleep", "3600"]
         }
     ]
-    
+
     created_pods = []
     for pod_def in test_pods:
         try:
@@ -162,7 +162,7 @@ def create_test_pods(namespace="cni-migration-test"):
             except client.rest.ApiException as e:
                 if e.status != 404:
                     raise
-            
+
             # Create pod
             pod_manifest = client.V1Pod(
                 metadata=client.V1ObjectMeta(
@@ -180,29 +180,29 @@ def create_test_pods(namespace="cni-migration-test"):
                     ]
                 )
             )
-            
+
             core_v1.create_namespaced_pod(namespace=namespace, body=pod_manifest)
             log.info(f"Created pod {pod_def['name']} in namespace {namespace}")
             created_pods.append(pod_def["name"])
         except Exception as e:
             log.error(f"Error creating pod {pod_def['name']}: {str(e)}")
-    
+
     return created_pods
 
 def delete_test_pods(namespace="cni-migration-test", delete_namespace=True):
     """
     Delete test pods and optionally the namespace.
-    
+
     Args:
         namespace (str): Namespace containing test pods
         delete_namespace (bool): Whether to delete the namespace
-        
+
     Returns:
         bool: True if successful, False otherwise
     """
     api_client = get_kubernetes_client()
     core_v1 = client.CoreV1Api(api_client)
-    
+
     try:
         # Delete all pods in the namespace
         pod_list = core_v1.list_namespaced_pod(namespace=namespace)
@@ -212,7 +212,7 @@ def delete_test_pods(namespace="cni-migration-test", delete_namespace=True):
                 log.info(f"Deleted pod {pod.metadata.name} in namespace {namespace}")
             except Exception as e:
                 log.error(f"Error deleting pod {pod.metadata.name}: {str(e)}")
-        
+
         # Delete the namespace if requested
         if delete_namespace:
             try:
@@ -220,7 +220,7 @@ def delete_test_pods(namespace="cni-migration-test", delete_namespace=True):
                 log.info(f"Deleted namespace {namespace}")
             except Exception as e:
                 log.error(f"Error deleting namespace {namespace}: {str(e)}")
-        
+
         return True
     except Exception as e:
         log.error(f"Error cleaning up test resources: {str(e)}")
