@@ -70,7 +70,10 @@ pip install -e .
 
 # Run the complete migration workflow script
 cd examples
-bash migration_workflow.sh
+./migration_workflow.sh
+
+# Or see available options
+./migration_workflow.sh --help
 ```
 
 This script will:
@@ -122,15 +125,32 @@ source .venv/bin/activate
 # Navigate to the examples directory
 cd examples
 
-# Run the example workflow
-bash migration_workflow.sh
+# Run the example workflow with default options
+./migration_workflow.sh
+
+# Show available options
+./migration_workflow.sh --help
+
+# Examples with different options
+./migration_workflow.sh --output-dir ./my-migration
+./migration_workflow.sh --force-cni calico --target-cidr 10.245.0.0/16
+./migration_workflow.sh --approach clean --skip-validation
 ```
 
 This script will:
-1. Detect your CNI type automatically
+1. Detect your CNI type automatically (or use the one you specify)
 2. Handle special cases like kubenet or kindnet by using calico as the source CNI for policy conversion
 3. Generate all necessary files for migration
 4. Provide next steps for completing the migration
+
+The script supports several command-line options:
+- `--output-dir DIR`: Directory to store all output files
+- `--force-cni TYPE`: Force a specific CNI type instead of auto-detection
+- `--target-cidr CIDR`: Specify target CIDR for Cilium
+- `--approach TYPE`: Migration approach (hybrid, clean, or canary)
+- `--skip-validation`: Skip the pre-migration validation step
+- `--no-debug`: Disable debug output
+- `--help`: Display help message and exit
 
 ## Migration Approaches
 
@@ -263,6 +283,70 @@ cd tests/minikube
 > **Note:** Minikube uses kubenet (also called kindnet in newer versions) as its default CNI. The tool will detect this and use calico as the source CNI for policy conversion, as kubenet only supports standard Kubernetes NetworkPolicies.
 
 The setup scripts will check if Minikube is installed but will not automatically install it. If Minikube is not found, you'll need to install it manually following the [Minikube installation guide](https://minikube.sigs.k8s.io/docs/start/).
+
+### Testing with Sample Network Policies
+
+The project includes a set of sample Kubernetes NetworkPolicies for testing the migration process. These policies cover various features of the Kubernetes NetworkPolicy API and can be used to validate that the migration tool correctly converts policies from the default CNI to Cilium format.
+
+```bash
+# Start Minikube with default CNI
+minikube start
+
+# Run the interactive test script
+cd examples/test-policies
+./test-migration.sh
+
+# Options for non-interactive or specialized testing
+./test-migration.sh --no-cleanup                # Keep resources after testing
+./test-migration.sh --no-interactive            # Run without interactive prompts
+./test-migration.sh --results-file=results.txt  # Save test results to a file
+./test-migration.sh --help                      # Show all available options
+```
+
+The interactive test script will:
+1. Create test namespaces and pods
+2. Test connectivity **before** applying network policies
+3. Apply sample network policies
+4. Test connectivity **after** applying network policies
+5. Run the migration tool to convert the policies
+6. Apply converted Cilium policies (if Cilium is installed)
+7. Test connectivity with Cilium policies
+8. Generate a detailed test report
+
+This provides a comprehensive way to test and visualize the migration process with the default CNI in a minikube environment. The script demonstrates how connectivity changes when policies are applied and validates that the converted Cilium policies maintain the same connectivity rules.
+
+### Star Wars Demo
+
+The project includes a Star Wars-themed demo that showcases the migration from Kubernetes NetworkPolicies to Cilium NetworkPolicies.
+
+> **Attribution Note**: This demo is based on the original [Star Wars Demo created by the Cilium authors](https://docs.cilium.io/en/stable/gettingstarted/demo/). We do not claim ownership of the Star Wars application concept, container images, or policy examples - all credit belongs to the Cilium team. We have simply adapted their excellent demo to showcase our CNI migration tool's capabilities.
+
+```bash
+# Start Minikube with default CNI
+minikube start
+
+# Run the Star Wars demo
+cd examples/star-wars-demo
+./star-wars-migration-demo.sh
+
+# Options for specialized testing
+./star-wars-migration-demo.sh --no-interactive     # Run without interactive prompts
+./star-wars-migration-demo.sh --install-cilium     # Install Cilium if not already installed
+./star-wars-migration-demo.sh --skip-cleanup       # Keep resources after demo
+./star-wars-migration-demo.sh --help               # Show all available options
+```
+
+The Star Wars demo will:
+1. Deploy a Star Wars-themed application (deathstar, tiefighter, xwing)
+2. Demonstrate connectivity without any network policies
+3. Apply Kubernetes NetworkPolicies and test connectivity
+4. Run the migration tool to convert the policies
+5. Apply Cilium NetworkPolicies and test connectivity
+6. Demonstrate the enhanced L7 (HTTP) filtering capabilities of Cilium
+
+This demo provides a more real-world example of migrating from Kubernetes NetworkPolicies to Cilium NetworkPolicies and highlights the advanced features of Cilium compared to standard Kubernetes NetworkPolicies.
+
+For more details on the Star Wars demo, see the [Star Wars Demo documentation](examples/star-wars-demo/README.md).
 
 For more details on Minikube testing, see the [Minikube Testing documentation](docs/testing/minikube.md).
 

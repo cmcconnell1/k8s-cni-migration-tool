@@ -1,0 +1,22 @@
+# This file is a Kubernetes NetworkPolicy equivalent of the Cilium L3/L4 policy
+# It's created to demonstrate migration from Kubernetes NetworkPolicies to Cilium NetworkPolicies
+# The concept is based on the Cilium Star Wars Demo
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deathstar-access
+spec:
+  podSelector:
+    matchLabels:
+      org: empire
+      class: deathstar
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          org: empire
+    ports:
+    - protocol: TCP
+      port: 80
